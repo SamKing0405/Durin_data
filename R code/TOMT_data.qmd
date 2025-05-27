@@ -26,6 +26,42 @@ You can add options to executable code like this
 The `echo: false` option disables the printing of code (only output is displayed).
 
 ```{r}
+calc_soil_moist <- function(rawsoilmoist, soil_temp, soilclass){
+  # creating df with parameters for each soil type, as specified from TOMST info
+  soilclass.df <- tibble(
+    soil = c("sand", "loamy_sand_A", "loamy_sand_B", "sandy_loam_A", "sandy_loam_B", "loam", "silt_loam", "peat"),
+    a = c(-3E-9, -1.9e-8, -2.3e-8, -3.8e-8, -9e-10, -5.1e-8, 1.7e-8, 1.23e-7),
+    b = c(1.61192e-4, 2.6561e-4, 2.82473e-4, 3.39449e-4, 2.61847e-4, 3.97984e-4, 1.18119e-4, 1.44644e-4),
+    c = c(-0.109956505, -0.154089291, -0.167211156, -0.214921782, -0.158618303, 0.291046437, -0.101168511, 0.202927906),
+    AirCalib = rep(57.64530756, 8), # a constant across all soil types, don't know exactly what this does
+    AirPuls = rep(56.88867311, 8), # a constant across all soil types, don't know exactly what this does
+    DilVol = rep(-59.72975311, 8) # a constant across all soil types, don't know exactly what this does
+  )
+  #filtering soilclass.df based on which soilclass was entered in the function
+  soilclass.df <- soilclass.df |>
+    filter(
+      soil == {{soilclass}}
+    )
+  #calculating the volumetric soil moisture with the parameters corresponding to the soil class and the raw soil moisture from the logger
+  volmoist = with(soilclass.df, {(a * rawsoilmoist^2) + (b * rawsoilmoist) + c})
+  #temperature correction
+  temp_ref <- 24
+  delta_air <- 1.91132689118083
+  delta_water <- 0.64108
+  delta_dil <- -1.270246891 # this is delta-water - delta_air
+  # we don't know what this does or what the variables do, but the result is the same as in excel
+  temp_corr <- rawsoilmoist + ((temp_ref-soil_temp) * (delta_air + delta_dil * volmoist))
+  # volumetric soil moisture with temperatue correction
+  volmoistcorr <- with(soilclass.df,
+                       ifelse(rawsoilmoist>AirCalib,
+                              (temp_corr+AirPuls+DilVol*volmoist)^2*a+(temp_corr+AirPuls+DilVol*volmoist)*b+c,
+                              NA))
+  volmoistcorr
+  # return(volmoist) #let's just use the soil moisture without temperature correction for now
+}
+```
+
+```{r}
 library(dplyr)
 library(readr)
 library(data.table)
@@ -63,9 +99,30 @@ further_consolidated<-further_consolidated %>% select(-V8)
 
 further_consolidated<- further_consolidated %>% rename (SoilMoist_Raw = V7)
 
-further_consolidated$land_type <- "Open"
+open_data<- further_consolidated%>%
+  mutate(land_type=case_when(Logger_ID=="94194604"~"Open", 
+                           Logger_ID=="94195240"~"Open",
+                           Logger_ID=="94195263"~"Open",
+                           Logger_ID=="94195264"~"Open",
+                           Logger_ID=="94195271"~"Open",
+                           Logger_ID=="94200491"~"Open",
+                           Logger_ID=="94200498"~"Open",
+                           Logger_ID=="95221001"~"Open",
+                           Logger_ID=="95221019"~"Open",
+                           Logger_ID=="95221029"~"Open",
+                           Logger_ID=="95221032"~"Open",
+                           Logger_ID=="95221034"~"Open",
+                           Logger_ID=="95221036"~"Open",
+                           Logger_ID=="95221040"~"Open",
+                           Logger_ID=="95221041"~"Open",
+                           Logger_ID=="95221054"~"Open",
+                           Logger_ID=="95221056"~"Open",
+                           Logger_ID=="95221058"~"Open",
+                           Logger_ID=="95221060"~"Open",
+                           Logger_ID=="95221192"~"Open",
+                           TRUE~"Forest"))
 
-further_consolidated<- further_consolidated%>%
+open_data<- further_consolidated%>%
   mutate(species=case_when(Logger_ID=="94194604"~"Empetrum nigrum", 
                            Logger_ID=="94195240"~"Vaccinium vitis idea",
                            Logger_ID=="94195263"~"Vaccinium vitis idea",
@@ -86,5 +143,32 @@ further_consolidated<- further_consolidated%>%
                            Logger_ID=="95221058"~"Calluna vulgaris",
                            Logger_ID=="95221060"~"Empetrum nigrum",
                            Logger_ID=="95221192"~"N/A",
+                           Logger_ID=="95221011"~"Calluna vulgaris",
+                           Logger_ID=="95221049"~"Calluna vulgaris",
+                           Logger_ID=="95221043"~"Calluna vulgaris",
+                           Logger_ID=="95221026"~"Calluna vulgaris",
+                           Logger_ID=="95221059"~"Calluna vulgaris",
+                           Logger_ID=="95221028"~"Empetrum nigrum",
+                           Logger_ID=="94195218"~"Empetrum nigrum",
+                           Logger_ID=="95221059"~"Calluna vulgaris",
+                           Logger_ID=="95221042"~"Vaccinium vitis idea",
+                           Logger_ID=="95221048"~"Vaccinium vitis idea",
+                           Logger_ID=="94195268"~"Vaccinium myrtillus",
+                           Logger_ID=="95221047"~"Vaccinium myrtillus",
+                           Logger_ID=="95221022"~"Empetrum nigrum",
+                           Logger_ID=="95221005"~"Vaccinium myrtillus",
+                           Logger_ID=="94195201"~"Vaccinium myrtillus",
+                           Logger_ID=="94195259"~"Empetrum nigrum",
+                           Logger_ID=="95221018"~"Vaccinium vitis idea",
+                           Logger_ID=="95221025"~"Vaccinium myrtillus",
+                           Logger_ID=="94195232"~"Vaccinium vitis idea",
+                           Logger_ID=="95221015"~"Vaccinium vitis idea",
                            TRUE~"N/A"))
+
+data_Sogndal_complete <- open_data |>
+# Create a new variable for TMS_moist, running the function 'calc_soil_moist'
+# Check your column names for equivilent of 'Soilmoisture_raw', 'TMS_T1', and we can also just use 'silt_loam' so that can stay the same.
+  mutate(TMS_moist = calc_soil_moist(rawsoilmoist = SoilMoist_Raw,
+                                     soil_temp = Temp_1,
+                                     soilclass ="silt_loam"))
 ```
