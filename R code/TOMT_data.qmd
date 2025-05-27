@@ -26,5 +26,38 @@ You can add options to executable code like this
 The `echo: false` option disables the printing of code (only output is displayed).
 
 ```{r}
+library(dplyr)
+library(readr)
+library(data.table)
+library(tidyverse)
+csv_files<-list.files(path = "/Users/samuelking/Downloads/Sogndal_TOMS_Data", pattern = "*.csv", full.names = TRUE)
 
+combined_data <- rbindlist(lapply(csv_files, function(file) {fread(file)[, source_file := basename(file)]}))
+
+combined_data <- combined_data %>% 
+  separate(V2, into = c("date", "time"), sep = " ")
+
+combined_data <- combined_data %>%mutate(date = as.Date(date, format = "%Y.%m.%d"))
+
+filtered_data <- combined_data %>% filter(date >= as.Date("2023-04-01"))
+
+filtered_data<- filtered_data %>% rename (Temp_1 = V4, Temp_2 = V5, Temp_3 = V6)
+
+filtered_data<- filtered_data %>% select(-V1)
+
+filtered_data$source_file<- sub("data_", "", filtered_data$source_file)
+
+filtered_data$source_file<- sub(".csv", "", filtered_data$source_file)
+
+filtered_data$source_file<- sub("_2025_05_22_0", "", filtered_data$source_file)
+
+filtered_data<- filtered_data %>% rename (Logger_ID = source_file)
+
+further_consolidated<-filtered_data %>% select(-V9)
+
+further_consolidated<-further_consolidated %>% select(-V10)
+
+further_consolidated<-further_consolidated %>% select(-V3)
+
+further_consolidated<-further_consolidated %>% select(-V8)
 ```
