@@ -60,4 +60,31 @@ further_consolidated<-further_consolidated %>% select(-V10)
 further_consolidated<-further_consolidated %>% select(-V3)
 
 further_consolidated<-further_consolidated %>% select(-V8)
+
+further_consolidated<- further_consolidated %>% rename (SoilMoist_Raw = V7)
+
+further_consolidated$land_type <- "Open"
+
+further_consolidated<- further_consolidated%>%
+  mutate(species=case_when(Logger_ID=="94194604"~"Empetrum nigrum", 
+                           Logger_ID=="94195240"~"Vaccinium vitis idea",
+                           Logger_ID=="94195263"~"Vaccinium vitis idea",
+                           Logger_ID=="94195264"~"Calluna vulgaris",
+                           Logger_ID=="94195271"~"Vaccinium vitis idea",
+                           Logger_ID=="94200491"~"Calluna vulgaris",
+                           Logger_ID=="94200498"~"Vaccinium vitis idea",
+                           Logger_ID=="95221001"~"Vaccinium myrtillus",
+                           Logger_ID=="95221019"~"Calluna vulgaris",
+                           Logger_ID=="95221029"~"N/A",
+                           Logger_ID=="95221032"~"Vaccinium myrtillus",
+                           Logger_ID=="95221034"~"Empetrum nigrum",
+                           Logger_ID=="95221036"~"Vaccinium myrtillus",
+                           Logger_ID=="95221040"~"Calluna vulgaris",
+                           Logger_ID=="95221041"~"Vaccinium myrtillus",
+                           Logger_ID=="95221054"~"Empetrum nigrum",
+                           Logger_ID=="95221056"~"Vaccinium vitis idea",
+                           Logger_ID=="95221058"~"Calluna vulgaris",
+                           Logger_ID=="95221060"~"Empetrum nigrum",
+                           Logger_ID=="95221192"~"N/A",
+                           TRUE~"N/A"))
 ```
