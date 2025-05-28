@@ -120,9 +120,29 @@ open_data<- further_consolidated%>%
                            Logger_ID=="95221058"~"Open",
                            Logger_ID=="95221060"~"Open",
                            Logger_ID=="95221192"~"Open",
-                           TRUE~"Forest"))
+                           Logger_ID=="95221011"~"Forest",
+                           Logger_ID=="95221049"~"Forest",
+                           Logger_ID=="95221043"~"Forest",
+                           Logger_ID=="95221026"~"Forest",
+                           Logger_ID=="95221059"~"Forest",
+                           Logger_ID=="95221028"~"Forest",
+                           Logger_ID=="94195218"~"Forest",
+                           Logger_ID=="95221059"~"Forest",
+                           Logger_ID=="95221042"~"Forest",
+                           Logger_ID=="95221048"~"Forest",
+                           Logger_ID=="94195268"~"Forest",
+                           Logger_ID=="95221047"~"Forest",
+                           Logger_ID=="95221022"~"Forest",
+                           Logger_ID=="95221005"~"Forest",
+                           Logger_ID=="94195201"~"Forest",
+                           Logger_ID=="94195259"~"Forest",
+                           Logger_ID=="95221018"~"Forest",
+                           Logger_ID=="95221025"~"Forest",
+                           Logger_ID=="94195232"~"Forest",
+                           Logger_ID=="95221015"~"Forest",
+                           TRUE~"N/A"))
 
-open_data<- further_consolidated%>%
+open_data<- open_data%>%
   mutate(species=case_when(Logger_ID=="94194604"~"Empetrum nigrum", 
                            Logger_ID=="94195240"~"Vaccinium vitis idea",
                            Logger_ID=="94195263"~"Vaccinium vitis idea",
@@ -165,10 +185,32 @@ open_data<- further_consolidated%>%
                            Logger_ID=="95221015"~"Vaccinium vitis idea",
                            TRUE~"N/A"))
 
+library(myClim)
+
 data_Sogndal_complete <- open_data |>
 # Create a new variable for TMS_moist, running the function 'calc_soil_moist'
 # Check your column names for equivilent of 'Soilmoisture_raw', 'TMS_T1', and we can also just use 'silt_loam' so that can stay the same.
   mutate(TMS_moist = calc_soil_moist(rawsoilmoist = SoilMoist_Raw,
                                      soil_temp = Temp_1,
                                      soilclass ="silt_loam"))
+```
+
+```{r}
+library(dplyr)
+data_Sogndal_complete %>%
+  group_by(species, land_type)%>%
+  summarize(avg_temp1=mean(Temp_1, na.rm=TRUE), avg_temp2=mean(Temp_2, na.rm=TRUE), avg_temp3=mean(Temp_3, na.rm=TRUE))
+
+```
+
+```{r}
+library(dplyr)
+threshold_temp <- 20  # Change this to your threshold value
+
+data_Sogndal_analyzed <- data_Sogndal_complete %>%
+  group_by(date) %>%
+  summarise(over_threshold = any(Temp_1 > threshold_temp)) %>%
+  mutate(extremes_1 = cumsum(over_threshold))
+
+tail(data_Sogndal_analyzed$extremes_1)
 ```
