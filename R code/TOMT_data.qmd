@@ -205,12 +205,22 @@ data_Sogndal_complete %>%
 
 ```{r}
 library(dplyr)
-threshold_temp <- 20  # Change this to your threshold value
+threshold_temp <- 20
 
-data_Sogndal_analyzed <- data_Sogndal_complete %>%
-  group_by(date) %>%
+data_Sogndal_analyzed <- data_Sogndal_complete %>% #this function helps reveal the fact that a few of the Loggers have some innacurate readings, reflecting high values year-round, probably due to the fact that they were kept in a lab and then replaced older loggers later on in the dataframe. Loggers 95221029, 95221192, and 95221194 are the culprits.
+  group_by(Logger_ID, date) %>%
   summarise(over_threshold = any(Temp_1 > threshold_temp)) %>%
   mutate(extremes_1 = cumsum(over_threshold))
 
-tail(data_Sogndal_analyzed$extremes_1)
+
+```
+
+```{r}
+library(dplyr)
+threshold_temp <- 20
+
+data_Sogndal_analyzed2 <- data_Sogndal_complete %>% #this function looks at the count of temps above the extreme 20 celsius over the course of a day, measuring not just if the extreme was met that day, but when/for how long. 
+  group_by(Logger_ID, date, time) %>%
+  summarise(over_threshold = any(Temp_1 > threshold_temp)) %>%
+  mutate(extremes_1 = cumsum(over_threshold))
 ```
