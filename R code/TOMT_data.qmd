@@ -5,6 +5,7 @@ editor: visual
 ---
 
 ```{r}
+##Copied R Code that reates the function calc_soil_moist for transfering the raw soil moisture values from the field into TMS form
 calc_soil_moist <- function(rawsoilmoist, soil_temp, soilclass){
   # creating df with parameters for each soil type, as specified from TOMST info
   soilclass.df <- tibble(
@@ -41,6 +42,7 @@ calc_soil_moist <- function(rawsoilmoist, soil_temp, soilclass){
 ```
 
 ```{r}
+##General introductory code formatting date into date form, separatign date and time, editing column names, removing unfilled/unimportant columns, and adding habitat and species titles
 library(dplyr)
 library(readr)
 library(data.table)
@@ -81,7 +83,7 @@ further_consolidated<-further_consolidated %>% select(-V8)
 further_consolidated<- further_consolidated %>% rename (SoilMoist_Raw = V7)
 
 open_data<- further_consolidated%>%
-  mutate(land_type=case_when(Logger_ID=="94194604"~"Open", 
+  mutate(habitat=case_when(Logger_ID=="94194604"~"Open", 
                            Logger_ID=="94195240"~"Open",
                            Logger_ID=="94195263"~"Open",
                            Logger_ID=="94195264"~"Open",
@@ -125,12 +127,12 @@ open_data<- further_consolidated%>%
 
 open_data<- open_data%>%
   mutate(species=case_when(Logger_ID=="94194604"~"Empetrum nigrum", 
-                           Logger_ID=="94195240"~"Vaccinium vitis idea",
-                           Logger_ID=="94195263"~"Vaccinium vitis idea",
+                           Logger_ID=="94195240"~"Vaccinium vitis-idaea",
+                           Logger_ID=="94195263"~"Vaccinium vitis-idaea",
                            Logger_ID=="94195264"~"Calluna vulgaris",
-                           Logger_ID=="94195271"~"Vaccinium vitis idea",
+                           Logger_ID=="94195271"~"Vaccinium vitis-idaea",
                            Logger_ID=="94200491"~"Calluna vulgaris",
-                           Logger_ID=="94200498"~"Vaccinium vitis idea",
+                           Logger_ID=="94200498"~"Vaccinium vitis-idaea",
                            Logger_ID=="95221001"~"Vaccinium myrtillus",
                            Logger_ID=="95221019"~"Calluna vulgaris",
                            Logger_ID=="95221029"~"Empetrum nigrum",
@@ -140,7 +142,7 @@ open_data<- open_data%>%
                            Logger_ID=="95221040"~"Calluna vulgaris",
                            Logger_ID=="95221041"~"Vaccinium myrtillus",
                            Logger_ID=="95221054"~"Empetrum nigrum",
-                           Logger_ID=="95221056"~"Vaccinium vitis idea",
+                           Logger_ID=="95221056"~"Vaccinium vitis-idaea",
                            Logger_ID=="95221058"~"Calluna vulgaris",
                            Logger_ID=="95221060"~"Empetrum nigrum",
                            Logger_ID=="95221192"~"Vaccinium myrtillus",
@@ -152,24 +154,24 @@ open_data<- open_data%>%
                            Logger_ID=="95221028"~"Empetrum nigrum",
                            Logger_ID=="94195218"~"Empetrum nigrum",
                            Logger_ID=="95221194"~"Empetrum nigrum",
-                           Logger_ID=="95221042"~"Vaccinium vitis idea",
-                           Logger_ID=="95221048"~"Vaccinium vitis idea",
+                           Logger_ID=="95221042"~"Vaccinium vitis-idaea",
+                           Logger_ID=="95221048"~"Vaccinium vitis-idaea",
                            Logger_ID=="94195268"~"Vaccinium myrtillus",
                            Logger_ID=="95221047"~"Vaccinium myrtillus",
                            Logger_ID=="95221022"~"Empetrum nigrum",
                            Logger_ID=="95221005"~"Vaccinium myrtillus",
                            Logger_ID=="94195201"~"Vaccinium myrtillus",
                            Logger_ID=="94195259"~"Empetrum nigrum",
-                           Logger_ID=="95221018"~"Vaccinium vitis idea",
+                           Logger_ID=="95221018"~"Vaccinium vitis-idaea",
                            Logger_ID=="95221025"~"Vaccinium myrtillus",
-                           Logger_ID=="94195232"~"Vaccinium vitis idea",
-                           Logger_ID=="95221015"~"Vaccinium vitis idea",
+                           Logger_ID=="94195232"~"Vaccinium vitis-idaea",
+                           Logger_ID=="95221015"~"Vaccinium vitis-idaea",
                            TRUE~"N/A"))
 ```
 
 ```{r}
+##Adds new column to data with TMS moisture formatted information
 library(myClim)
-
 data_Sogndal_complete <- open_data |>
 # Create a new variable for TMS_moist, running the function 'calc_soil_moist'
 # Check your column names for equivilent of 'Soilmoisture_raw', 'TMS_T1', and we can also just use 'silt_loam' so that can stay the same.
@@ -179,23 +181,19 @@ data_Sogndal_complete <- open_data |>
 ```
 
 ```{r}
-library(myClim)
-mc_calc_vwc
-```
-
-```{r}
+#This function is just experimental and gets the average temperatures for the entire time that the loggers were in place and across all logger data points for each habitat and species 
 library(dplyr)
 data_Sogndal_complete %>%
-  group_by(species, land_type)%>%
+  group_by(species, habitat)%>%
   summarize(avg_temp1=mean(Temp_1, na.rm=TRUE), avg_temp2=mean(Temp_2, na.rm=TRUE), avg_temp3=mean(Temp_3, na.rm=TRUE))
 
 ```
 
 ```{r}
+#this function helps reveal the fact that a few of the Loggers have some innacurate readings, reflecting high values year-round, probably due to the fact that they were kept in a lab and then replaced older loggers later on in the dataframe. Loggers 95221029, 95221192, and 95221194 are the culprits.
 library(dplyr)
-threshold_temp <- 20
-
-data_Sogndal_analyzed <- data_Sogndal_complete %>% #this function helps reveal the fact that a few of the Loggers have some innacurate readings, reflecting high values year-round, probably due to the fact that they were kept in a lab and then replaced older loggers later on in the dataframe. Loggers 95221029, 95221192, and 95221194 are the culprits.
+threshold_temp <- 20 #Picked number just as a general placemarker
+data_Sogndal_analyzed <- data_Sogndal_complete %>%
   group_by(Logger_ID, date) %>%
   summarise(over_threshold = any(Temp_1 > threshold_temp)) %>%
   mutate(extremes_1 = cumsum(over_threshold))
@@ -203,10 +201,11 @@ data_Sogndal_analyzed <- data_Sogndal_complete %>% #this function helps reveal t
 
 ```
 
-```{r}
+```{r eval=FALSE}
+#this function is just experimental and looks at the count of temps above the extreme 20 celsius over the course of a day, measuring not just if the extreme was met that day, but when/for how long.
 library(dplyr)
 threshold_temp <- 20
-data_Sogndal_analyzed2 <- data_Sogndal_complete %>% #this function looks at the count of temps above the extreme 20 celsius over the course of a day, measuring not just if the extreme was met that day, but when/for how long. 
+data_Sogndal_analyzed2 <- data_Sogndal_complete %>% 
   group_by(Logger_ID, date, time) %>%
   summarise(over_threshold = any(Temp_1 > threshold_temp)) %>%
   mutate(extremes_1 = cumsum(over_threshold))
@@ -219,21 +218,9 @@ data_Sogndal_processed_old<- data_Sogndal_complete %>%
 ```
 
 ```{r}
-##This function edits the data so that the faulty logger data is adjusted to just the timeframe when it is accurate 
-library(dplyr)
-
-data_Sogndal_processed <- data_Sogndal_complete %>%
-  filter(
-    !(Logger_ID %in% c("95221029", "95221192", "95221194")) |
-      (Logger_ID %in% c("95221029", "95221192", "95221194") & date >= as.Date("2024-06-01"))
-  )
-  
-```
-
-```{r}
 ####Isolates faulty logger data, creates graph to identify when they were replaced, and cuts out time before they were placed in the field.
 data_Sogndal_faulty<- data_Sogndal_complete %>%
-  group_by(date)%>%
+  group_by(date)%>% 
   filter(Logger_ID %in% c("95221029", "95221192", "95221194"))%>%
 
 data_Sogndal_faulty_cut<- data_Sogndal_faulty%>%
@@ -245,22 +232,22 @@ ggplot(data_Sogndal_faulty, aes(x = date, y = Temp_1, color=Logger_ID)) +
 ```
 
 ```{r}
+##This function edits the data so that the faulty logger data is adjusted to just the timeframe when it is accurate 
 library(dplyr)
-#this function compares open and forested measurements above the "extreme" value (20 celsius) for each day
-count_extremes_by_day <- data_Sogndal_processed %>%
-    filter(Temp_1 >= 20) %>%      # Keep only extreme temps
-    group_by(date, land_type) %>%  # Group by date & land type
-    summarise(extreme_count = n(), .groups = "drop") %>%
-  #mutate(extreme_count_real=case_when (land_type=="Forest"~extreme_count/20, land_type=="Open"~extreme_count/20))
-  
+data_Sogndal_processed <- data_Sogndal_complete %>%
+  select (-SoilMoist_Raw)%>%
+  filter(
+    !(Logger_ID %in% c("95221029", "95221192", "95221194")) |
+      (Logger_ID %in% c("95221029", "95221192", "95221194") & date >= as.Date("2024-06-01"))
+  )
 ```
 
 ```{r}
 library(dplyr)
 #this function compares open v.s. forested and species measurements above the "extreme" value (20 celsius) for each day
 count_extremes_by_day <- data_Sogndal_processed %>%
-    filter(Temp_1 >= 20) %>%      
-    group_by(date, land_type, species) %>%
+    filter(Temp_3 >= 20) %>%      
+    group_by(date, habitat, species) %>% #Add logger ID, later find mean and error distribution based on that
     summarise(extreme_count = n(), .groups = "drop")
 ```
 
@@ -269,34 +256,17 @@ count_extremes_by_day <- data_Sogndal_processed %>%
 library(ggplot2)
 library(dplyr)
 count_extremes_edited <- count_extremes_by_day %>%
-  mutate(Group = paste(land_type, species, sep = "_"))
+  mutate(Group = paste(habitat, species, sep = "_"))
 
 ggplot(count_extremes_edited, aes(x = date, y = extreme_count, color=Group)) +
   geom_line()
 ```
 
 ```{r}
-data_Sogndal_complete%>%
-  filter(Logger_ID=="95221194")
-```
-
-```{r}
-length(unique(data_Sogndal_complete$Logger_ID))
-```
-
-```{r}
-blah<-data_Sogndal_complete%>%
-  filter(land_type=="N/A")%>%
-  group_by(Logger_ID)
-```
-
-```{r}
-##Add columns to datat table shoing the overall daily max and min for Temp_1 and the range between the two values 
+##Creates table showing the daily list of the maximum and minimum tempuratures, along with the range and standard deviations for each of the three temperature readings (at different heights). 
 library(dplyr)
 Sogndal_analysis <- data_Sogndal_processed %>%
   group_by(date) %>%
-  mutate(Daily_Max = max(Temp_1, na.rm = TRUE)) %>%
-  mutate(Daily_Min = min(Temp_1, na.rm = TRUE)) %>%
-  mutate(Range= Daily_Max-Daily_Min)%>%
-  ungroup()
+  summarize (Daily_Max_1 = max(Temp_1, na.rm = TRUE),Daily_Min_1 = min(Temp_1, na.rm = TRUE), Range_1=Daily_Max_1-Daily_Min_1, sd_1=sd(Temp_1), Daily_Max_2 = max(Temp_2, na.rm = TRUE),Daily_Min_2 = min(Temp_2, na.rm = TRUE),Range_2=Daily_Max_2-Daily_Min_2,sd_2=sd(Temp_2), Daily_Max_3 = max(Temp_3, na.rm = TRUE),Daily_Min_3 = min(Temp_3, na.rm = TRUE), Range_3=Daily_Max_3-Daily_Min_3, sd_3=sd(Temp_3))
+  
 ```
