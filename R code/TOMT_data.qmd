@@ -243,30 +243,90 @@ data_Sogndal_processed <- data_Sogndal_complete %>%
 ```
 
 ```{r}
+##Function to save and export data table "data_Sogndal_processed" created above
+write.csv(data_Sogndal_processed, "Sogndal_Logger_Data.csv", row.names=FALSE)
+```
+
+```{r}
+##Separating data from Sogndal_processed into four different datasets so column numbers will fit in excel
+
+data_Sogndal_EN<-data_Sogndal_processed %>%
+  filter(species=="Empetrum nigrum")
+
+data_Sogndal_CV<-data_Sogndal_processed %>%
+  filter(species=="Calluna vulgaris")
+
+data_Sogndal_VV<-data_Sogndal_processed %>%
+  filter(species=="Vaccinium vitis-idaea")
+
+data_Sogndal_VM<-data_Sogndal_processed %>%
+  filter(species=="Vaccinium myrtillus")
+```
+
+```{r}
+##Function to get newly divided Sogndal data into .csv file form
+write.csv(data_Sogndal_EN, "Sogndal_Data_EN.csv", row.names=FALSE)
+write.csv(data_Sogndal_CV, "Sogndal_Data_CV.csv", row.names=FALSE)
+write.csv(data_Sogndal_VV, "Sogndal_Data_VV.csv", row.names=FALSE)
+write.csv(data_Sogndal_VM, "Sogndal_Data_VM.csv", row.names=FALSE)
+```
+
+```{r}
 library(dplyr)
-#this function compares open v.s. forested and species measurements above the "extreme" value (20 celsius) for each day
+#this function compares open v.s. forested and species measurements above the "extreme" values (20 celsius to -20 celcius at intervals of 5 degrees) for each day
 count_extremes_by_day <- data_Sogndal_processed %>%
+  group_by(date, habitat, species)%>%
+  summarize(
+    Extreme_20=sum(Temp_3>20, na.rm=TRUE),
+    Extreme_15=sum(Temp_3>15, na.rm=TRUE),
+    Extreme_10=sum(Temp_3>10, na.rm=TRUE),
+    Extreme_5=sum(Temp_3>5, na.rm=TRUE),
+    Extreme_abv0=sum(Temp_3>0, na.rm=TRUE),
+    Extreme_bel0=sum(Temp_3<0, na.rm=TRUE),
+    Extreme_neg5=sum(Temp_3< -5, na.rm=TRUE),
+    Extreme_neg10=sum(Temp_3< -10, na.rm=TRUE),
+    Extreme_neg15=sum(Temp_3< -15, na.rm=TRUE),
+    Extreme_neg20=sum(Temp_3< -20, na.rm=TRUE))
+
+#Earlier version of function that just counted measurements exceeding an extreme of 20 celsius
+count_extremes_by_day2 <- data_Sogndal_processed %>%
     filter(Temp_3 >= 20) %>%      
-    group_by(date, habitat, species) %>% #Add logger ID, later find mean and error distribution based on that
+    group_by(date, habitat, species) %>%
     summarise(extreme_count = n(), .groups = "drop")
 ```
 
 ```{r}
-##This function looks at the number of extreme values (over 20 celcius), with separation for the land type and plant type
+##This function looks at the number of extreme values, with separation for the land type and plant type
 library(ggplot2)
 library(dplyr)
 count_extremes_edited <- count_extremes_by_day %>%
   mutate(Group = paste(habitat, species, sep = "_"))
-
-ggplot(count_extremes_edited, aes(x = date, y = extreme_count, color=Group)) +
-  geom_line()
 ```
 
 ```{r}
-##Creates table showing the daily list of the maximum and minimum tempuratures, along with the range and standard deviations for each of the three temperature readings (at different heights). 
+###The purpose of this code is to create a graph illustrating the counts of the different temperature extremes over time with respect to the habitat and species of the plant  
+long_extreme<-count_extremes_edited%>%
+  pivot_longer (cols=c(Extreme_20, Extreme_15, Extreme_10, Extreme_5, Extreme_abv0, Extreme_bel0, Extreme_neg5, Extreme_neg10, Extreme_neg15, Extreme_neg20),
+                names_to = "threshold",
+                values_to = "count")
+
+ggplot(long_extreme, aes(x = date, y = count, color = threshold)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Temperature Extremes Over Time by Species",
+    x = "Date",
+    y = "Extreme Count",
+    color = "Temperature Threshold"
+  ) +
+  facet_wrap(~ Group) +
+  theme_minimal()
+```
+
+```{r}
+##Creates table showing a list of the maximum and minimum tempuratures divided by date, habitat, and species, along with the range, mean, and standard deviations for each of the three temperature readings (at different heights). 
 library(dplyr)
 Sogndal_analysis <- data_Sogndal_processed %>%
-  group_by(date) %>%
-  summarize (Daily_Max_1 = max(Temp_1, na.rm = TRUE),Daily_Min_1 = min(Temp_1, na.rm = TRUE), Range_1=Daily_Max_1-Daily_Min_1, sd_1=sd(Temp_1), Daily_Max_2 = max(Temp_2, na.rm = TRUE),Daily_Min_2 = min(Temp_2, na.rm = TRUE),Range_2=Daily_Max_2-Daily_Min_2,sd_2=sd(Temp_2), Daily_Max_3 = max(Temp_3, na.rm = TRUE),Daily_Min_3 = min(Temp_3, na.rm = TRUE), Range_3=Daily_Max_3-Daily_Min_3, sd_3=sd(Temp_3))
+  group_by(date, habitat, species) %>%
+  summarize (Daily_Max_1 = max(Temp_1, na.rm = TRUE),Daily_Min_1 = min(Temp_1, na.rm = TRUE), Mean_1=mean(Temp_1, na.rm=TRUE), Range_1=Daily_Max_1-Daily_Min_1, sd_1=sd(Temp_1), Daily_Max_2 = max(Temp_2, na.rm = TRUE),Daily_Min_2 = min(Temp_2, na.rm = TRUE),Mean_2=mean(Temp_2, na.rm=TRUE), Range_2=Daily_Max_2-Daily_Min_2, sd_2=sd(Temp_2), Daily_Max_3 = max(Temp_3, na.rm = TRUE),Daily_Min_3 = min(Temp_3, na.rm = TRUE), Mean_3=mean(Temp_3, na.rm=TRUE), Range_3=Daily_Max_3-Daily_Min_3, sd_3=sd(Temp_3))
   
 ```
