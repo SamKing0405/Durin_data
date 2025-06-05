@@ -5,6 +5,15 @@ editor: visual
 ---
 
 ```{r}
+library(dplyr)
+library(readr)
+library(data.table)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+```
+
+```{r}
 ##Copied R Code that reates the function calc_soil_moist for transfering the raw soil moisture values from the field into TMS form
 calc_soil_moist <- function(rawsoilmoist, soil_temp, soilclass){
   # creating df with parameters for each soil type, as specified from TOMST info
@@ -277,12 +286,16 @@ library(dplyr)
 count_extremes_by_day <- data_Sogndal_processed %>%
   group_by(date, habitat, species)%>%
   summarize(
+    Extreme_30=sum(Temp_3>30, na.rm=TRUE),
+    Extreme_25=sum(Temp_3>25, na.rm=TRUE),
     Extreme_20=sum(Temp_3>20, na.rm=TRUE),
     Extreme_15=sum(Temp_3>15, na.rm=TRUE),
     Extreme_10=sum(Temp_3>10, na.rm=TRUE),
     Extreme_5=sum(Temp_3>5, na.rm=TRUE),
+    Extreme_1=sum(Temp_3>1, na.rm=TRUE),
     Extreme_abv0=sum(Temp_3>0, na.rm=TRUE),
     Extreme_bel0=sum(Temp_3<0, na.rm=TRUE),
+    Extreme_neg1=sum(Temp_3< -1, na.rm=TRUE),
     Extreme_neg5=sum(Temp_3< -5, na.rm=TRUE),
     Extreme_neg10=sum(Temp_3< -10, na.rm=TRUE),
     Extreme_neg15=sum(Temp_3< -15, na.rm=TRUE),
@@ -306,7 +319,7 @@ count_extremes_edited <- count_extremes_by_day %>%
 ```{r}
 ###The purpose of this code is to create a graph illustrating the counts of the different temperature extremes over time with respect to the habitat and species of the plant  
 long_extreme<-count_extremes_edited%>%
-  pivot_longer (cols=c(Extreme_20, Extreme_15, Extreme_10, Extreme_5, Extreme_abv0, Extreme_bel0, Extreme_neg5, Extreme_neg10, Extreme_neg15, Extreme_neg20),
+  pivot_longer (cols=c(Extreme_30, Extreme_25, Extreme_20, Extreme_15, Extreme_10, Extreme_5, Extreme_1, Extreme_abv0, Extreme_bel0, Extreme_neg1, Extreme_neg5, Extreme_neg10, Extreme_neg15, Extreme_neg20),
                 names_to = "threshold",
                 values_to = "count")
 
@@ -320,6 +333,60 @@ ggplot(long_extreme, aes(x = date, y = count, color = threshold)) +
   ) +
   facet_wrap(~ Group) +
   theme_minimal()
+
+
+long_extreme %>%
+  filter(count == "")
+ggplot(long_extreme, aes(x = date, y = count, color = Group)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Temperature Extremes Over Time by Species",
+    x = "Date",
+    y = "Extreme Count",
+    color = "Temperature Threshold"
+  ) +
+  facet_wrap(~ threshold) +
+  theme_minimal()
+```
+
+```{r}
+##Creating graph similar to the one above but only with reagrds to the habitat as supossed to every habitat/species combination.
+
+long_extreme<-count_extremes_edited%>%
+  pivot_longer (cols=c(Extreme_30, Extreme_25, Extreme_20, Extreme_15, Extreme_10, Extreme_5, Extreme_1, Extreme_abv0, Extreme_bel0, Extreme_neg1, Extreme_neg5, Extreme_neg10, Extreme_neg15, Extreme_neg20),
+                names_to = "threshold",
+                values_to = "count")
+
+ggplot(long_extreme, aes(x = date, y = count, color = habitat)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Temperature Extremes Over Time by Species",
+    x = "Date",
+    y = "Extreme Count",
+    color = "Temperature Threshold"
+  ) +
+  facet_wrap(~ threshold) +
+  theme_minimal()
+```
+
+```{r}
+##Creating graph similar to the one above but only with regards to the species as supossed to habitat combination.
+
+long_extreme<-count_extremes_edited%>%
+  pivot_longer (cols=c(Extreme_30, Extreme_25, Extreme_20, Extreme_15, Extreme_10, Extreme_5, Extreme_1, Extreme_abv0, Extreme_bel0, Extreme_neg1, Extreme_neg5, Extreme_neg10, Extreme_neg15, Extreme_neg20),
+                names_to = "threshold",
+                values_to = "count")
+
+ggplot(long_extreme, aes(x = date, y = count, color = species)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Temperature Extremes Over Time by Species",
+    x = "Date",
+    y = "Extreme Count",
+    color = "Temperature Threshold"
+  ) +
+  facet_wrap(~ threshold) +
+  theme_minimal()
 ```
 
 ```{r}
@@ -328,5 +395,29 @@ library(dplyr)
 Sogndal_analysis <- data_Sogndal_processed %>%
   group_by(date, habitat, species) %>%
   summarize (Daily_Max_1 = max(Temp_1, na.rm = TRUE),Daily_Min_1 = min(Temp_1, na.rm = TRUE), Mean_1=mean(Temp_1, na.rm=TRUE), Range_1=Daily_Max_1-Daily_Min_1, sd_1=sd(Temp_1), Daily_Max_2 = max(Temp_2, na.rm = TRUE),Daily_Min_2 = min(Temp_2, na.rm = TRUE),Mean_2=mean(Temp_2, na.rm=TRUE), Range_2=Daily_Max_2-Daily_Min_2, sd_2=sd(Temp_2), Daily_Max_3 = max(Temp_3, na.rm = TRUE),Daily_Min_3 = min(Temp_3, na.rm = TRUE), Mean_3=mean(Temp_3, na.rm=TRUE), Range_3=Daily_Max_3-Daily_Min_3, sd_3=sd(Temp_3))
-  
+```
+
+```{r}
+##Creates analysis table with monthly analysis values instead of daily 
+Sogndal_analysis_monthly_bad <- Sogndal_analysis %>%
+  mutate(Year = year(date),
+         Month = month(date)) %>%
+  group_by(Year, Month) %>%
+  summarize (Date=format(date, "%Y-%m"), Group=paste (habitat, species, sep = "_"), Monthly_Avg_Temp = mean(Mean_3, na.rm = TRUE), Monthly_Max_Temp = max(Mean_3), Monthly_Min_Temp = min(Mean_3), Monthly_Range_Temp = (Monthly_Max_Temp-Monthly_Min_Temp), Monthly_sd_Temp = sd(Mean_3)) %>%
+  ungroup()
+
+Sogndal_analysis_monthly<-Sogndal_analysis_monthly_bad %>%
+  distinct()%>%
+  select(-Year)%>%
+  select(-Month)
+```
+
+```{r}
+##Form a line plot graph with error bars based on Sogndal monthly analysis values
+ggplot(Sogndal_analysis_monthly, aes(x=Date, y=Monthly_Avg_Temp, color=Group)) + 
+  geom_line() +
+  geom_point()+
+  geom_errorbar(aes(ymin=Monthly_Avg_Temp-Monthly_sd_Temp, ymax=Monthly_Avg_Temp+Monthly_sd_Temp), width=.2,
+                 position=position_dodge(0.05)) +
+  labs(title="Monthly Average Analysis", x="Date", y = "Temperature")
 ```
