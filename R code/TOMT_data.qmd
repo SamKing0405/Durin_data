@@ -65,7 +65,7 @@ combined_data <- combined_data %>%
 
 combined_data <- combined_data %>%mutate(date = as.Date(date, format = "%Y.%m.%d"))
 
-filtered_data <- combined_data %>% filter(date >= as.Date("2023-04-01"))
+filtered_data <- combined_data %>% filter(date >= as.Date("2023-06-26"))
 
 filtered_data<- filtered_data %>% rename (Temp_1 = V4, Temp_2 = V5, Temp_3 = V6)
 
@@ -285,6 +285,7 @@ library(dplyr)
 #this function compares open v.s. forested and species measurements above the "extreme" values (20 celsius to -20 celcius at intervals of 5 degrees) for each day
 count_extremes_by_day <- data_Sogndal_processed %>%
   group_by(date, habitat, species)%>%
+  filter(Logger_ID!=95221022)%>% #This logger seemed to be giving some innacurate results (sustained temp leading to overcounting of some extreme values for Forest_Empetrum Nigrum) so removed it from the data for now (edit made as of 06/06/2025).
   summarize(
     Extreme_30=sum(Temp_3>30, na.rm=TRUE),
     Extreme_25=sum(Temp_3>25, na.rm=TRUE),
@@ -318,10 +319,22 @@ count_extremes_edited <- count_extremes_by_day %>%
 
 ```{r}
 ###The purpose of this code is to create a graph illustrating the counts of the different temperature extremes over time with respect to the habitat and species of the plant  
+library(forcats)
 long_extreme<-count_extremes_edited%>%
   pivot_longer (cols=c(Extreme_30, Extreme_25, Extreme_20, Extreme_15, Extreme_10, Extreme_5, Extreme_1, Extreme_abv0, Extreme_bel0, Extreme_neg1, Extreme_neg5, Extreme_neg10, Extreme_neg15, Extreme_neg20),
                 names_to = "threshold",
                 values_to = "count")
+
+
+long_extreme %>% 
+  mutate(threshold = factor(threshold)) %>%
+ mutate(threshold = fct_relevel(threshold, 
+                           c("Extreme_30", "Extreme_25", "Extreme_20", "Extreme_15","Extreme_10", "Extreme_5", "Extreme_1","Extreme_abv0",
+                                      "Extreme_bel0","Extreme_neg1", "Extreme_neg5","Extreme_neg10","Extreme_neg15","Extreme_neg20")))
+
+#long_extreme$threshold<- as.factor(as.character(long_extreme$threshold))
+
+
 
 ggplot(long_extreme, aes(x = date, y = count, color = threshold)) +
   geom_line(size = 1) +
@@ -337,6 +350,7 @@ ggplot(long_extreme, aes(x = date, y = count, color = threshold)) +
 
 long_extreme %>%
   filter(count == "")
+
 ggplot(long_extreme, aes(x = date, y = count, color = Group)) +
   geom_line(size = 1) +
   labs(
@@ -390,6 +404,14 @@ ggplot(long_extreme, aes(x = date, y = count, color = species)) +
 ```
 
 ```{r}
+data_issues<-data_Sogndal_processed%>%
+  filter(habitat=="Forest")%>%
+  filter(species=="Empetrum nigrum")%>%
+  filter(date>"2025-05-01")%>%
+  filter(Temp_3>0)
+```
+
+```{r}
 ##Creates table showing a list of the maximum and minimum tempuratures divided by date, habitat, and species, along with the range, mean, and standard deviations for each of the three temperature readings (at different heights). 
 library(dplyr)
 Sogndal_analysis <- data_Sogndal_processed %>%
@@ -398,11 +420,23 @@ Sogndal_analysis <- data_Sogndal_processed %>%
 ```
 
 ```{r}
+Sogndal_analysis_monthly_alt <- data_Sogndal_processed %>%
+  mutate(Year = year(date),
+         Month = month(date)) %>%
+  group_by(Year, Month, habitat, species) %>%
+  summarize (Mean_3=mean(Temp_3, na.rm=TRUE), sd_3=sd(Temp_3))%>%
+  mutate(Group = paste(habitat, species, sep = "_"))%>%
+  mutate(date = paste0(Year, "-", sprintf("%02d", Month)))%>%
+  mutate(date=paste0(date, "-01")) %>%
+  mutate(date = as.Date(date, format = "%Y-%m-%d"))
+```
+
+```{r}
 ##Creates analysis table with monthly analysis values instead of daily 
 Sogndal_analysis_monthly_bad <- Sogndal_analysis %>%
   mutate(Year = year(date),
          Month = month(date)) %>%
-  group_by(Year, Month) %>%
+  group_by(Year, Month, habitat, species) %>%
   summarize (Date=format(date, "%Y-%m"), Group=paste (habitat, species, sep = "_"), Monthly_Avg_Temp = mean(Mean_3, na.rm = TRUE), Monthly_Max_Temp = max(Mean_3), Monthly_Min_Temp = min(Mean_3), Monthly_Range_Temp = (Monthly_Max_Temp-Monthly_Min_Temp), Monthly_sd_Temp = sd(Mean_3)) %>%
   ungroup()
 
@@ -413,11 +447,25 @@ Sogndal_analysis_monthly<-Sogndal_analysis_monthly_bad %>%
 ```
 
 ```{r}
-##Form a line plot graph with error bars based on Sogndal monthly analysis values
+##Form a jittered line plot graph with error bars based on Sogndal monthly analysis values
+pd<-position_dodge(0.5)
 ggplot(Sogndal_analysis_monthly, aes(x=Date, y=Monthly_Avg_Temp, color=Group)) + 
   geom_line() +
   geom_point()+
-  geom_errorbar(aes(ymin=Monthly_Avg_Temp-Monthly_sd_Temp, ymax=Monthly_Avg_Temp+Monthly_sd_Temp), width=.2,
-                 position=position_dodge(0.05)) +
+  geom_jitter(position=pd) +
+  geom_errorbar(aes(ymin=Monthly_Avg_Temp-Monthly_sd_Temp, ymax=Monthly_Avg_Temp+Monthly_sd_Temp), width=.5,
+                 position=pd) +
+  labs(title="Monthly Average Analysis", x="Date", y = "Temperature")
+```
+
+```{r}
+###Version of the code that uses raw data to inform monthly averages instead of daily averages. Wasen't able to get jitter to work for some reason on this one though unfortunately:( 
+pd<-position_dodge(0.5)
+ggplot(Sogndal_analysis_monthly_alt, aes(x=date, y=Mean_3, color=Group)) +
+  scale_x_date(date_labels = "%Y-%m", date_breaks = "1 month") +
+  geom_point()+
+  geom_jitter(position=pd) +
+  geom_errorbar(aes(ymin=Mean_3-sd_3, ymax=Mean_3+sd_3), width=.5,
+                 position=pd) +
   labs(title="Monthly Average Analysis", x="Date", y = "Temperature")
 ```
