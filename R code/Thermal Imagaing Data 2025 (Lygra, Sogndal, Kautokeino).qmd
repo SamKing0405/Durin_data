@@ -1,0 +1,34 @@
+---
+title: "Thermal Imaging Data Repository 2025"
+format: html
+editor: visual
+---
+
+```{r}
+##Load in packages
+library(dplyr)
+library(readr)
+library(data.table)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(ggplot2)
+```
+
+```{r}
+#Load in Lygra data collected on different species
+CV_EN_Data_Lygra<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Lygra/Thermal imaging Testing - Field Data CV_EN.csv")
+VV_VM_Data_Lygra<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Lygra/Thermal imaging Testing - Field Data VV_VM.csv")
+```
+
+```{r}
+#Load in Sogndal data collected on different species
+CV_EN_Data_Sogndal<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Sogndal/Thermal Imaging - CV_EN Sogndal.csv")
+VV_VM_Data_Sogndal<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Sogndal/Thermal Imaging - VV_VM Sogndal.csv")
+```
+
+```{r}
+#Load in Kautokeino data collected on different species
+CV_EN_Data_Kautokeino<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Kautokeino/Thermal Imaging - Field Data CV_EN Kautokeino.csv")
+VV_VM_Data_Kautokeino<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Kautokeino/Thermal Imaging - Field Data VV_VM Kautokeino.csv")
+```
