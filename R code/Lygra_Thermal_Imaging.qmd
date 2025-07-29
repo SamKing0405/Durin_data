@@ -1,0 +1,64 @@
+---
+title: "Thermal Testing Field Analysis"
+format: html
+editor: visual
+---
+
+```{r}
+##Load in packages
+library(dplyr)
+library(readr)
+library(data.table)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(ggplot2)
+```
+
+```{r}
+##Load in excel file
+open_practice<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Lygra/Thermal imaging Testing - Field Work.csv")
+```
+
+```{r}
+##Attempting to graph the data using different variables/techniques
+open_practice<-open_practice%>%
+  mutate(Group = paste0(Species, Angle..degree., sep = "_"))
+
+open_practice<-open_practice %>%
+  group_by(Species, Plot.ID, Leaf..)
+
+ggplot(open_practice, aes (x=Canopy.Level, y=Temp..C., color = Species)) +
+  geom_boxplot(size = 1)
+```
+
+```{r}
+#Load in Lygra data collected on different species
+CV_EN_Data<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Lygra/Thermal imaging Testing - Field Data CV_EN.csv")
+VV_VM_Data<-read.csv("/Users/samuelking/Downloads/Thermal Imaging Data/Lygra/Thermal imaging Testing - Field Data VV_VM.csv")
+```
+
+```{r}
+#Make a few plot graphs for the thermal data from the CV and EN readings
+CV_EN_Data<-CV_EN_Data %>%
+  group_by(Species, Plot.ID, Leaf..)
+
+ggplot(CV_EN_Data, aes (x=Canopy.Level, y=Temp.2..C., color = Species)) +
+  geom_boxplot(size = 1)
+
+ggplot(CV_EN_Data, aes (x=Species, y=Temp.2..C., color = Canopy.Level)) +
+  geom_boxplot(size = 1)
+```
+
+```{r}
+#Make a few plot graphs for the thermal data from the VV and VM readings
+VV_VM_Data<-VV_VM_Data %>%
+  group_by(Species, Plot.ID, Leaf..)
+
+ggplot(VV_VM_Data, aes (x=Canopy.Level, y=Temp..C., color = Species)) +
+  geom_boxplot(size = 1)
+
+ggplot(VV_VM_Data, aes (x=Species, y=Temp..C., color = Canopy.Level)) +
+  geom_boxplot(size = 1)
+
+```
